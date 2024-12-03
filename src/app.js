@@ -3,6 +3,8 @@ const { connectDB } = require("./config/database");
 const app = express();
 const User = require("./models/user");
 app.use(express.json()); // middleware to parse the incoming request body
+const { validateSignUpData } = require("./utils/validations");
+const bcrypt = require("bcrypt");
 
 app.get("/feed", async (req, res) => {
   try {
@@ -33,11 +35,22 @@ app.get("/user", async (req, res) => {
 });
 
 app.post("/signup", async (req, res, next) => {
-  //   console.log(req.body);
-
-  const user = new User(req.body);
-
   try {
+    //   validation of data
+    validateSignUpData(req);
+    const { firstName, lastName, email, password } = req.body;
+    // encrypt password
+    const passwordHash = await bcrypt.hash(password, 8);
+    console.log(passwordHash);
+    // save user to database
+
+    const user = new User({
+      firstName,
+      lastName,
+      email,
+      password: passwordHash,
+    });
+
     const result = await user.save();
     res.send(result);
   } catch (err) {
