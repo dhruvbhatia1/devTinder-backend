@@ -11,4 +11,13 @@ const validateSignUpData = (req) => {
   }
 };
 
-module.exports = { validateSignUpData };
+const validateLoginData = (req) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    throw new Error("Missing required fields");
+  } else if (!validator.isEmail(email)) {
+    throw new Error("Invalid email");
+  }
+};
+
+module.exports = { validateSignUpData, validateLoginData };
