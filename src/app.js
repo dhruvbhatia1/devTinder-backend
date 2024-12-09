@@ -2,12 +2,15 @@ const express = require("express");
 const { connectDB } = require("./config/database");
 const app = express();
 const User = require("./models/user");
+const cookieParser = require("cookie-parser");
 app.use(express.json()); // middleware to parse the incoming request body
+app.use(cookieParser());
 const {
   validateSignUpData,
   validateLoginData,
 } = require("./utils/validations");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 app.get("/feed", async (req, res) => {
   try {
@@ -34,6 +37,30 @@ app.get("/user", async (req, res) => {
     }
   } catch (err) {
     res.status(500).send(err.message);
+  }
+});
+
+app.get("/profile", async (req, res) => {
+  try {
+    const cookie = req.cookies;
+    const token = cookie.token;
+
+    if (!token) {
+      throw new Error("Unauthorized");
+    }
+
+    const decodedToken = jwt.verify(token, "BACKEND$SECRET_KEY");
+    // console.log(decodedToken);
+    const userId = decodedToken._id;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    res.send(user);
+  } catch {
+    res.status(401).send("Unauthorized");
   }
 });
 
@@ -74,7 +101,12 @@ app.post("/login", async (req, res) => {
     if (!isPasswordValid) {
       throw new Error("Invalid credentials");
     }
+    // create a jwt token
+    const token = await jwt.sign({ _id: user._id }, "BACKEND$SECRET_KEY");
 
+    // add the token to cookie and send it to the client
+
+    res.cookie("token", token);
     res.status(200).send("Login successful");
   } catch (err) {
     res.status(400).send(err.message);
