@@ -11,6 +11,8 @@ const {
 } = require("./utils/validations");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { userAuth } = require("./middlewares/auth");
+require("dotenv").config();
 
 app.get("/feed", async (req, res) => {
   try {
@@ -37,30 +39,6 @@ app.get("/user", async (req, res) => {
     }
   } catch (err) {
     res.status(500).send(err.message);
-  }
-});
-
-app.get("/profile", async (req, res) => {
-  try {
-    const cookie = req.cookies;
-    const token = cookie.token;
-
-    if (!token) {
-      throw new Error("Unauthorized");
-    }
-
-    const decodedToken = jwt.verify(token, "BACKEND$SECRET_KEY");
-    // console.log(decodedToken);
-    const userId = decodedToken._id;
-
-    const user = await User.findById(userId);
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    res.send(user);
-  } catch {
-    res.status(401).send("Unauthorized");
   }
 });
 
@@ -102,7 +80,7 @@ app.post("/login", async (req, res) => {
       throw new Error("Invalid credentials");
     }
     // create a jwt token
-    const token = await jwt.sign({ _id: user._id }, "BACKEND$SECRET_KEY");
+    const token = await jwt.sign({ _id: user._id }, process.env.JWT_SECRET_KEY);
 
     // add the token to cookie and send it to the client
 
@@ -111,6 +89,22 @@ app.post("/login", async (req, res) => {
   } catch (err) {
     res.status(400).send(err.message);
   }
+});
+
+app.get("/profile", userAuth, async (req, res) => {
+  try {
+    const user = req.user;
+    res.send(user);
+  } catch {
+    res.status(401).send("Unauthorized");
+  }
+});
+
+app.post("/sendConnectionRequest", userAuth, async (req, res) => {
+  // TODO: implement logic
+  console.log("Sending request");
+
+  res.send("Connection request sent.");
 });
 
 app.delete("/user", async (req, res) => {
